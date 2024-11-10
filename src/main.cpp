@@ -3,19 +3,12 @@
 #include <ESP8266HTTPClient.h>
 #include <ArduinoJson.h>  // Thư viện để tạo và xử lý JSON
 
-// Danh sách các cấu hình WiFi
-const char* ssidList[] = {"skibidi 2.4", "NguyenDuc"};
-const char* passwordList[] = {"Tu9denmot", "tumotden8"};
-
-// Cấu hình địa chỉ IP tĩnh
-IPAddress local_IP(192, 168, 1, 50);     // Địa chỉ IP tĩnh mong muốn
-IPAddress gateway(192, 168, 1, 1);       // Địa chỉ gateway của router
-IPAddress subnet(255, 255, 255, 0);      // Subnet mask
-IPAddress primaryDNS(8, 8, 8, 8);        // DNS chính (Google DNS)
-IPAddress secondaryDNS(8, 8, 4, 4);      // DNS phụ (Google DNS)
+// Thông tin kết nối WiFi
+const char* ssid = "skibidi 2.4";
+const char* password = "Tu9denmot";
 
 // URL của server để gửi dữ liệu cảm biến
-const char* serverUrl = "http://192.168.1.5:3000/api/v1/sensors/data";
+const char* serverUrl = "http://20.255.153.8:3000/api/v1/sensors/data";
 
 // Định nghĩa chân kết nối của các cảm biến và còi báo
 #define GAS_SENSOR_PIN 2
@@ -58,62 +51,27 @@ void handleToggleBuzzer() {
   }
 }
 
-// Hàm kết nối tới một trong các mạng WiFi trong danh sách
-void connectToWiFi() {
-  bool isConnected = false;  // Biến kiểm tra trạng thái kết nối
-
-  for (int i = 0; i < sizeof(ssidList) / sizeof(ssidList[0]); i++) {
-    WiFi.begin(ssidList[i], passwordList[i]);
-    Serial.print("Đang kết nối tới WiFi: ");
-    Serial.println(ssidList[i]);
-
-    // Chờ kết nối trong tối đa 10 giây
-    int retries = 0;
-    while (WiFi.status() != WL_CONNECTED && retries < 10) {  // Thử kết nối trong tối đa 10 giây
-      delay(1000);
-      Serial.print(".");
-      retries++;
-    }
-
-    if (WiFi.status() == WL_CONNECTED) {
-      isConnected = true;
-      Serial.println("\nKết nối thành công!");
-      Serial.print("Địa chỉ IP: ");
-      Serial.println(WiFi.localIP());
-      break;
-    } else {
-      Serial.println("\nKhông thể kết nối.");
-    }
-  }
-
-  if (!isConnected) {
-    Serial.println("Không có mạng WiFi nào khả dụng. Vui lòng kiểm tra cấu hình.");
-  }
-}
-
 // Hàm khởi tạo ESP8266
 void setup() {
   Serial.begin(115200);  // Khởi tạo Serial với tốc độ 115200
-
-  // Cấu hình IP tĩnh cho ESP8266
-  if (!WiFi.config(local_IP, gateway, subnet, primaryDNS, secondaryDNS)) {
-    Serial.println("Failed to configure Static IP");
-  }
-
-  // Kết nối WiFi từ danh sách cấu hình
-  connectToWiFi();
-  
+  WiFi.begin(ssid, password);  // Kết nối với mạng WiFi
   pin_mode();  // Thiết lập chế độ cho các chân
   digitalWrite(BUZZER_PIN, LOW);  // Tắt còi báo ban đầu
+
+  // Chờ kết nối WiFi
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(1000);
+    Serial.println("Connecting to WiFi...");
+  }
+  Serial.println("Connected to WiFi");
+
+  // Hiển thị địa chỉ IP của ESP8266
+  Serial.print("ESP8266 IP Address: ");
+  Serial.println(WiFi.localIP());
 
   // Thiết lập endpoint /toggle_buzzer để bật/tắt còi báo
   server.on("/toggle_buzzer", HTTP_POST, handleToggleBuzzer);
   server.begin();  // Bắt đầu server
-
-  // Còi kêu báo hiệu thiết lập thành công
-  digitalWrite(BUZZER_PIN, HIGH);  // Bật còi báo
-  delay(500);                      // Còi kêu trong 0.5 giây
-  digitalWrite(BUZZER_PIN, LOW);   // Tắt còi báo
 }
 
 // Hàm gửi dữ liệu cảm biến đến server
