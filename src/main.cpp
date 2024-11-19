@@ -1,11 +1,11 @@
-#include <ESP8266WiFi.h>
+s#include <ESP8266WiFi.h>
 #include <ESP8266WebServer.h>
 #include <ESP8266HTTPClient.h>
 #include <ArduinoJson.h>  // Thư viện để tạo và xử lý JSON
 
-// Thông tin kết nối WiFi
-const char* ssid = "skibidi 2.4";
-const char* password = "Tu9denmot";
+// Danh sách các cấu hình WiFi
+const char* ssidList[] = { "NguyenDuc", "PLZ" };
+const char* passwordList[] = { "tumotden8", "11110000" };
 
 // URL của server để gửi dữ liệu cảm biến
 const char* serverUrl = "http://20.255.153.8:3000/api/v1/sensors/data";
@@ -17,7 +17,7 @@ const char* serverUrl = "http://20.255.153.8:3000/api/v1/sensors/data";
 #define BUZZER_PIN 13
 
 // Khai báo biến cho kết nối WiFi và server HTTP
-WiFiClient client;
+WiFiClient client;  
 ESP8266WebServer server(80);  // Tạo HTTP server trên ESP8266, lắng nghe tại cổng 80
 unsigned long lastSendTime = 0;  // Biến lưu thời gian gửi dữ liệu lần cuối
 
@@ -51,27 +51,57 @@ void handleToggleBuzzer() {
   }
 }
 
+// Hàm kết nối tới một trong các mạng WiFi trong danh sách
+void connectToWiFi() {
+  bool isConnected = false;  // Biến kiểm tra trạng thái kết nối
+
+  for (int i = 0; i < sizeof(ssidList) / sizeof(ssidList[0]); i++) {
+    WiFi.begin(ssidList[i], passwordList[i]);
+    Serial.print("Đang kết nối tới WiFi: ");
+    Serial.println(ssidList[i]);
+
+    // Chờ kết nối trong tối đa 20 giây
+    int retries = 0;
+    while (WiFi.status() != WL_CONNECTED && retries < 20) {  // Thử kết nối trong tối đa 20 giây
+      delay(1000);
+      Serial.print(".");
+      retries++;
+    }
+
+    if (WiFi.status() == WL_CONNECTED) {
+      isConnected = true;
+      Serial.println("\nKết nối thành công!");
+      Serial.print("Địa chỉ IP: ");
+      Serial.println(WiFi.localIP());
+      break;
+    } else {
+      Serial.println("\nKhông thể kết nối.");
+    }
+  }
+
+  if (!isConnected) {
+    Serial.println("Không có mạng WiFi nào khả dụng. Vui lòng kiểm tra cấu hình.");
+  }
+}
+
 // Hàm khởi tạo ESP8266
 void setup() {
   Serial.begin(115200);  // Khởi tạo Serial với tốc độ 115200
-  WiFi.begin(ssid, password);  // Kết nối với mạng WiFi
+
+  // Kết nối WiFi từ danh sách cấu hình
+  connectToWiFi();
+  
   pin_mode();  // Thiết lập chế độ cho các chân
   digitalWrite(BUZZER_PIN, LOW);  // Tắt còi báo ban đầu
-
-  // Chờ kết nối WiFi
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(1000);
-    Serial.println("Connecting to WiFi...");
-  }
-  Serial.println("Connected to WiFi");
-
-  // Hiển thị địa chỉ IP của ESP8266
-  Serial.print("ESP8266 IP Address: ");
-  Serial.println(WiFi.localIP());
 
   // Thiết lập endpoint /toggle_buzzer để bật/tắt còi báo
   server.on("/toggle_buzzer", HTTP_POST, handleToggleBuzzer);
   server.begin();  // Bắt đầu server
+
+  // Còi kêu báo hiệu thiết lập thành công
+  digitalWrite(BUZZER_PIN, HIGH);  // Bật còi báo
+  delay(500);                      // Còi kêu trong 0.5 giây
+  digitalWrite(BUZZER_PIN, LOW);   // Tắt còi báo
 }
 
 // Hàm gửi dữ liệu cảm biến đến server
@@ -122,7 +152,7 @@ void loop() {
   }
 
   // Cập nhật trạng thái còi báo dựa vào điều kiện và trạng thái tắt tạm thời
-  bool buzzerStatus = (flaValue < 500) && !buzzerDisabled;
+  bool buzzerStatus = ((flaValue < 500)|| (airValue != 0 || gasValue != 0)) && !buzzerDisabled;
   digitalWrite(BUZZER_PIN, buzzerStatus ? HIGH : LOW);
 
   // In giá trị cảm biến lên Serial Monitor
@@ -131,7 +161,7 @@ void loop() {
 
   // Kiểm tra thời gian để gửi dữ liệu định kỳ hoặc khi có cảnh báo
   unsigned long currentTime = millis();
-  if (airValue != 0) {
+  if (airValue != 0 || gasValue != 0 ) {
     // Gửi dữ liệu ngay lập tức nếu có giá trị không bình thường từ cảm biến khí
     sendData(gasValue, airValue, flaValue, buzzerStatus);
     lastSendTime = currentTime;  // Cập nhật thời gian gửi cuối
