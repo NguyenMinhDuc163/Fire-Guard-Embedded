@@ -164,7 +164,7 @@ void loop() {
   }
 
   // Cập nhật trạng thái còi báo dựa vào điều kiện và trạng thái tắt tạm thời
-  bool buzzerStatus = (flaValue < 500) && !buzzerDisabled;
+  bool buzzerStatus = ((flaValue < 500)|| (airValue != 0 || gasValue != 0)) && !buzzerDisabled;
   digitalWrite(BUZZER_PIN, buzzerStatus ? HIGH : LOW);
 
   // In giá trị cảm biến lên Serial Monitor
@@ -173,7 +173,7 @@ void loop() {
 
   // Kiểm tra thời gian để gửi dữ liệu định kỳ hoặc khi có cảnh báo
   unsigned long currentTime = millis();
-  if (airValue != 0) {
+  if (airValue != 0 || gasValue != 0 ) {
     // Gửi dữ liệu ngay lập tức nếu có giá trị không bình thường từ cảm biến khí
     sendData(gasValue, airValue, flaValue, buzzerStatus);
     lastSendTime = currentTime;  // Cập nhật thời gian gửi cuối
