@@ -4,8 +4,8 @@
 #include <ArduinoJson.h>  // Thư viện để tạo và xử lý JSON
 
 // Danh sách các cấu hình WiFi
-const char* ssidList[] = {"skibidi 2.4", "NguyenDuc"};
-const char* passwordList[] = {"Tu9denmot", "tumotden8"};
+const char* ssidList[] = {"skibidi 2.4", "NguyenDuc", "PLZ"};
+const char* passwordList[] = {"Tu9denmot", "tumotden8", "11110000"};
 
 // Cấu hình địa chỉ IP tĩnh
 IPAddress local_IP(192, 168, 1, 50);     // Địa chỉ IP tĩnh mong muốn
@@ -15,7 +15,7 @@ IPAddress primaryDNS(8, 8, 8, 8);        // DNS chính (Google DNS)
 IPAddress secondaryDNS(8, 8, 4, 4);      // DNS phụ (Google DNS)
 
 // URL của server để gửi dữ liệu cảm biến
-const char* serverUrl = "http://192.168.1.5:3000/api/v1/sensors/data";
+const char* serverUrl = "http://20.255.153.8:3000/api/v1/sensors/data";
 
 // Định nghĩa chân kết nối của các cảm biến và còi báo
 #define GAS_SENSOR_PIN 2
